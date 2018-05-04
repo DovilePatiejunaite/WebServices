@@ -121,11 +121,17 @@ def programs():
         for i in range(0,len(tv_programs)):
             if len(tv_programs[i]["football_teams"])!=0:
                 for j in range(0,len(tv_programs[i]["football_teams"])):
-                    identif = tv_programs[i]["football_teams"][j]['id']
-                    url = 'http://web2:81/football_teams/'+str(identif) 		
-                    r = requests.get(url).text
-                    r = json.loads(r)
-                    tv_programs[i]["football_teams"][j]=r
+                    try:
+                        identif = tv_programs[i]["football_teams"][j]['id']
+                        url = 'http://web2:81/football_teams/'+str(identif) 		
+                        r = requests.get(url).text
+                        r = json.loads(r)
+                        tv_programs[i]["football_teams"][j]=r
+                    except requests.exceptions.RequestException as err:
+                        print(err)
+			r = "null"
+			r = json.loads(r)
+                        tv_programs[i]["football_teams"][j] = r
 	return jsonify(tv_programs)
     if television is None and embed is None:
         return jsonify(tv_db)
@@ -137,17 +143,35 @@ def programs():
     else:
         return jsonify(tv_db)
 
-
 #GET/<OPTION>
 #curl -i http://localhost:80/tv_programs/<id>
 @app.route('/tv_programs/<int:id>', methods=['GET'])
 def tv_program_by_id(id):
-	program = []
+	program = {}
 	for i in tv_db:
 		if i['id'] == id:
 			program = i
 	if len(program) == 0:
 		abort(404)
+	embed = request.args.get('embedded','')
+	if embed == 'football_teams':
+            program2 = copy.deepcopy(program)
+            if len(program2["football_teams"])!=0:
+                for j in range(0,len(program2["football_teams"])):
+                    try:
+                        identif = program2["football_teams"][j]['id']
+                        url = 'http://web2:81/football_teams/'+str(identif) 		
+                        r = requests.get(url).text
+                        r = json.loads(r)
+                        r = r[0]
+                        program2["football_teams"][j]=r
+                    except requests.exceptions.RequestException as err:
+                        print(err)
+			r = "null"
+			r = json.loads(r)
+                        program2["football_teams"][j] = r
+                       # return str(err), 503
+	    return jsonify(program2)
 	return jsonify(program)
 
 #POST
@@ -187,9 +211,12 @@ def new_program2():
 	       'Attendance': attendance,
 	       'Captain': captain,
 	    }
-    	    r = requests.post(url, json=new_football_team)
-            code = r.status_code
-    	    r = json.loads(r.text)
+            try:
+    	        r = requests.post(url, json=new_football_team)
+    	        r = json.loads(r.text)
+            except requests.exceptions.RequestException as err:
+                print(err)
+                return str(err), 503
     	    for i in tv_db:
                 if i['id'] == id:
                     i['football_teams'].append({'id':r['ID']})
@@ -221,20 +248,24 @@ def update_program(id):
             for i in range(0,len(request.json["football_teams"])):
                 if not 'Captain' in request.json["football_teams"][i] or not 'Name' in request.json["football_teams"][i] or not 'Stadium' in request.json["football_teams"][i] or not 'Attendance' in request.json["football_teams"][i] or not 'Country' in request.json["football_teams"][i]:
 		    abort(400)
-    	        name = request.json["football_teams"][i]['Name']
-    	        country = request.json["football_teams"][i]['Country']
-    	        stadium = request.json["football_teams"][i]['Stadium']
-    	        attendance = request.json["football_teams"][i]['Attendance']
-    	        captain = request.json["football_teams"][i]['Captain']
-    	        url = 'http://web2:81/football_teams/'+str(program['football_teams'][i]['id'])
-    	        new_football_team = {
-	            'Name': name,
-	            'Country': country,
-	            'Stadium': stadium,
-	            'Attendance': attendance,
-	            'Captain': captain,
-	        }
-    	        r = requests.put(url, json=new_football_team)
+                try:
+    	            name = request.json["football_teams"][i]['Name']
+    	            country = request.json["football_teams"][i]['Country']
+    	            stadium = request.json["football_teams"][i]['Stadium']
+    	            attendance = request.json["football_teams"][i]['Attendance']
+    	            captain = request.json["football_teams"][i]['Captain']
+    	            url = 'http://web2:81/football_teams/'+str(program['football_teams'][i]['id'])
+    	            new_football_team = {
+	                'Name': name,
+	                'Country': country,
+	                'Stadium': stadium,
+	                'Attendance': attendance,
+	                'Captain': captain,
+	            }
+    	            r = requests.put(url, json=new_football_team)
+                except requests.exceptions.RequestException as err:
+                    print(err)
+                    return str(err), 503
 	return jsonify({'UPDATED':'true'}), 200
 #DELETE
 #curl -i -H "Content-Type: application/json" -X DELETE http://localhost:80/tv_program/<program_id>
@@ -248,19 +279,24 @@ def delete_program(id):
         abort(404)
     if len(program['football_teams']) != 0:
         for i in range(0, len(program['football_teams'])):
-            url = 'http://web2:81/football_teams/'+str(program["football_teams"][i]["id"])
-            r = requests.delete(url)
+            try:
+                url = 'http://web2:81/football_teams/'+str(program["football_teams"][i]["id"])
+                r = requests.delete(url)
+            except requests.exceptions.RequestException as err:
+                print(err)
+                return str(err), 503
     tv_db.remove(program)
     return jsonify(program)
 
-# Antra uzduotis
-
 @app.route('/football_teams', methods=['GET'])
 def get_all_teams():
-	r = requests.get('http://web2:81/football_teams').text
-	r = json.loads(r)
-	return jsonify(r), 200
-
+        try:
+	    r = requests.get('http://web2:81/football_teams').text
+	    r = json.loads(r)
+            return jsonify(r), 200
+        except requests.exceptions.RequestException as err:
+            print(err)
+            return str(err), 503
 
 @app.route('/tv_programs/<int:id>/football_teams', methods=['GET'])
 def get_football_team(id):
@@ -270,9 +306,13 @@ def get_football_team(id):
                         program = i
         if len(program) == 0:
                 abort(404)
-	url = 'http://web2:81/football_teams'
-	r = requests.get(url).text
-	r = json.loads(r)
+        try:
+	    url = 'http://web2:81/football_teams'
+	    r = requests.get(url).text
+	    r = json.loads(r)
+	except requests.exceptions.RequestException as err:
+            print(err)
+            return str(err), 503
 	program_by_team = []
 	for i in r:
 		for j in program['football_teams']:
