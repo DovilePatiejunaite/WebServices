@@ -43,14 +43,23 @@ Galimos užklausos 2-ąjai užduočiai:
 
 #curl -i http://localhost:80/tv_programs/<tv_:id>/football_teams
 
-3. POST metodas. Sukuria nauja televizijos programos dalį, kurioje įdeda tam tikrų futbolo komandų identifikatorius.
+3. POST metodas. Sukuria naują televizijos programos dalį, kurioje įdeda tam tikrų futbolo komandų identifikatorius. 
 
-#curl -i -H "Content-Type: application/json" - X POST -d '{"title":"<>", "television":"<>","start_time":"<>","football_teams":"<"id":<>>" etc <optional>}' https://localhost:80/tv_programs/<tv_:id>/football_teams
+#curl -i -H "Content-Type: application/json" - X POST -d '{"title":"<>", "television":"<>","start_time":"<>","football_teams":"<"id":<>>" etc <optional>}' https://localhost:80/tv_programs
 
 4. DELETE metodas. Ištrina egzistuojančių futbolo komandų numerius iš tv programos.
 
-#curl -i -H "Content-Type: application/json" -X DELETE http://localhost:80/tv_programs/<tv_:id>/football_teams/<element_id>
+#curl -i -H "Content-Type: application/json" -X DELETE http://localhost:80/tv_programs/<tv_:id>
 
+5. PUT metodas. Atnaujina tv programos įrašą, pagal jos identifikatorių:id. Galima atnaujinti pasirinktinai: tv_programs įrašus, taip pat ir kito serviso, kurį naudojame įrašus.
 
+#curl -i -H "Content-Type: application/json" - X PUT -d '{"<>":"<>"}' https://localhost:80/tv_programs/<element_id> 
+
+6. GET metodas. Įgyvendintas "embedded" reikalavimas. Vietoje id, tv_programoje bus rodomas pilnas football_team objektas. (1)
+Taip pat galima prafiltruoti pasirinktą tv programos įrašą pagal televiziją. (2)
+
+#curl -i http://localhost:80/tv_programs?embedded=football_teams (1)
+
+#curl -i http://localhost:80/tv_programs?television=LNK (2) (Pavyzdys)
 
 
